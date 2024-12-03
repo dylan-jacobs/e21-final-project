@@ -38,6 +38,39 @@ def kinematics5_simulator_dh(theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_
     
     return results, EP_Change
 
+def function_to_minimize(final_position):
+    # define thumb joint lengths
+    mc_length = 5
+    pp_length = 4
+    dp_length = 2
+
+    # Define symbolic variables
+    theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
+    positions_matrix, position_change = kinematics5_simulator_dh(theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip, mc_length, pp_length, dp_length)
+
+    f = sum(position_change)
+    return f
+
+def get_thumb_constraints():
+    minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
+    maxima = [62.9, 61.2, 10, 8.1, 12] # maxima extension, abduction
+    return minima, maxima
+
+def constraint_function(theta_vals):
+    minima, maxima = get_thumb_constraints()
+    g_sum = 0
+    for i in len(minima):
+        g_sum += max(theta_vals[i] - minima[i], 0)
+        g_sum += max(maxima[i] - theta_vals[i], 0)
+
+    return g_sum
+
+def objective(theta_vals, final_position):
+    lambda_val = 100
+
+    return function_to_minimize(final_position) + (lambda_val*(constraint_function(theta_vals))**2)
+
+
 
 ## STEPS TO PROJECT
 
