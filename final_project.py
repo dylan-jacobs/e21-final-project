@@ -41,7 +41,7 @@ def kinematics5_simulator_dh(theta_vals, mc_length, pp_length, dp_length):
     
     return results, EP_Change
 
-def f(final_position, theta_vals):
+def f(theta_vals):
     # define thumb joint lengths
     mc_length = 5
     pp_length = 4
@@ -55,7 +55,7 @@ def f(final_position, theta_vals):
         theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
     positions_matrix, position_change = kinematics5_simulator_dh(theta_vals, mc_length, pp_length, dp_length)
 
-    return sum(position_change)
+    return position_change
 
 def get_thumb_constraints():
     minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
@@ -89,17 +89,17 @@ def constraint_function(theta_vals):
 def objective(theta_vals, final_position):
     lambda_val = 100
 
-    return f(final_position, theta_vals) + (lambda_val*(constraint_function(theta_vals))**2)
+    return sum(f(theta_vals)) + (lambda_val*(constraint_function(theta_vals))**2)
 
 def compute_final_position(final_position):
     q = rand_params()
     res = scipy.optimize.minimize(fun=objective, x0=q, args=final_position, method='Powell', options=dict(maxfev=10000))
     final_theta = res.x
     error = objective(final_theta, None)
-    print(f'Final position: {f(None, final_theta)}')
+    print(f'Final position: {f(final_theta)}')
     print(f'Error: {error}')
 
-compute_final_position([1, 2, 3])
+compute_final_position([1, 1, 1])
 
 
 
