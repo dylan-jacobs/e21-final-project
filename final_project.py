@@ -78,11 +78,6 @@ def jacobian():
     return jacobian
 
 def f(theta_vals):
-    # define thumb joint lengths
-    mc_length = 5
-    pp_length = 4
-    dp_length = 2
-
     # We will only pass in a None type for theta_vals if we want to solve for theta values. 
     # Otherwise, we can use this function to reconstruct a position given KNOWN theta values
     if len(theta_vals) == 0: 
