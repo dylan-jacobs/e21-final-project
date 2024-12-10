@@ -65,18 +65,19 @@ def jacobian():
     
     # Compute the transformation matrices
     EP_Matrix = sp.simplify(CMC_Abd_Matrix * CMC_Flex_Matrix * MCP_Abd_Matrix * MCP_Flex_Matrix * IP_Flex_Matrix)
-    jacobian = np.zeros((3, len(theta_vals)))
+    jacobian = sp.zeros(3, len(theta_vals))
     
     for i in range(0, jacobian.shape[0]):
         eqn = EP_Matrix[i, :]
         for j in range(0, jacobian.shape[1]):
+            # print(eqn[i].diff(theta_vals[j], theta_vals[j], theta_vals[j], theta_vals[j]))
             jacobian[i, j] = eqn.diff(theta_vals[j], theta_vals[j], theta_vals[j], theta_vals[j])
     return jacobian
 
 def solset():
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
     delta_theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    eq1 = np.zeros(3,1) == jacobian() * delta_theta_vals
+    eq1 = np.zeros((3,1)) == jacobian() * delta_theta_vals
     solset = sp.solve(eq1, theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip)
 
     null = sp.null_space(jacobian())
@@ -141,8 +142,10 @@ def compute_final_position(final_position):
     print(f'Final position: {f(final_theta)}')
     print(f'Error: {error}')
 
-compute_final_position([1, 1, 1])
+# compute_final_position([1, 1, 1])
 
+null, sol_set = solset()
+print(sol_set)
 
 
 
