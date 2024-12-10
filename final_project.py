@@ -2,7 +2,7 @@ import numpy as np
 import sympy as sp
 import scipy
 
-def kinematics5_simulator_dh(theta_vals, mc_length, pp_length, dp_length):
+def kinematics5_simulator_dh(theta_vals, mc_length=5, pp_length=4, dp_length=2):
     # Define the total length
     length = mc_length + pp_length + dp_length
     og_pos = np.array([length, 0, 0])
@@ -40,6 +40,16 @@ def kinematics5_simulator_dh(theta_vals, mc_length, pp_length, dp_length):
     EP_Change = EP_Pos - og_pos
     
     return results, EP_Change
+
+def jacobian(matrix):
+    shape = matrix.shape
+    jacobian = np.zeros((shape))
+    
+    for i in range(0, shape[0]):
+        for j in range(0, shape[1]):
+
+            eqn = matrix[i, :]
+            jacobian[i, j] = eqn.diff()
 
 def f(theta_vals):
     # define thumb joint lengths
@@ -100,6 +110,8 @@ def compute_final_position(final_position):
     print(f'Error: {error}')
 
 compute_final_position([1, 1, 1])
+
+
 
 
 
