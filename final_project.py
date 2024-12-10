@@ -41,15 +41,37 @@ def kinematics5_simulator_dh(theta_vals, mc_length=5, pp_length=4, dp_length=2):
     
     return results, EP_Change
 
-def jacobian(matrix):
-    shape = matrix.shape
-    jacobian = np.zeros((shape))
+def jacobian():
+    theta, alph, d, r = sp.symbols('theta alph d r')
+    # Define the DH parameter matrix
+    DH_Param = sp.Matrix([
+        [sp.cos(theta), -sp.sin(theta) * sp.cos(alph), sp.sin(theta) * sp.sin(alph), r * sp.cos(theta)],
+        [sp.sin(theta), sp.cos(theta) * sp.cos(alph), -sp.cos(theta) * sp.sin(alph), r * sp.sin(theta)],
+        [0, sp.sin(alph), sp.cos(alph), d],
+        [0, 0, 0, 1]
+    ])
     
-    for i in range(0, shape[0]):
-        for j in range(0, shape[1]):
-
-            eqn = matrix[i, :]
-            jacobian[i, j] = eqn.diff()
+    # Substitute DH parameters for each joint
+    theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
+    mc_length = 5
+    pp_length = 4
+    dp_length = 2
+    theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
+    CMC_Abd_Matrix = DH_Param.subs({theta: theta_cmc_horiz, alph: sp.pi/2, d: 0, r: 0})
+    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: mc_length})
+    MCP_Abd_Matrix = DH_Param.subs({theta: theta_mcp_horiz, alph: sp.pi/2, d: 0, r: 0})
+    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: pp_length})
+    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: dp_length})
+    
+    # Compute the transformation matrices
+    EP_Matrix = sp.simplify(CMC_Abd_Matrix * CMC_Flex_Matrix * MCP_Abd_Matrix * MCP_Flex_Matrix * IP_Flex_Matrix)
+    jacobian = np.zeros((3, len(theta_vals)))
+    
+    for i in range(0, jacobian.shape[0]):
+        eqn = EP_Matrix[i, :]
+        for j in range(0, jacobian.shape[1]):
+            jacobian[i, j] = eqn.diff(theta_vals[j], theta_vals[j], theta_vals[j], theta_vals[j])
+    return jacobian
 
 def f(theta_vals):
     # define thumb joint lengths
