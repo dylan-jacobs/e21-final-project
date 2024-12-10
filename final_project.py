@@ -2,13 +2,9 @@ import numpy as np
 import sympy as sp
 import scipy
 
-MC_LENGTH = 5
-PP_LENGTH = 4
-DP_LENGTH = 2
-
-def kinematics5_simulator_dh(theta_vals):
+def kinematics5_simulator_dh(theta_vals, mc_length=5, pp_length=4, dp_length=2):
     # Define the total length
-    length = MC_LENGTH + PP_LENGTH + DP_LENGTH
+    length = mc_length + pp_length + dp_length
     og_pos = np.array([length, 0, 0])
 
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = theta_vals
@@ -26,10 +22,10 @@ def kinematics5_simulator_dh(theta_vals):
     
     # Substitute DH parameters for each joint
     CMC_Abd_Matrix = DH_Param.subs({theta: theta_cmc_horiz, alph: sp.pi/2, d: 0, r: 0})
-    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: MC_LENGTH})
+    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: mc_length})
     MCP_Abd_Matrix = DH_Param.subs({theta: theta_mcp_horiz, alph: sp.pi/2, d: 0, r: 0})
-    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: PP_LENGTH})
-    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: DP_LENGTH})
+    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: pp_length})
+    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: dp_length})
     
     # Compute the transformation matrices
     EP_Matrix = sp.simplify(CMC_Abd_Matrix * CMC_Flex_Matrix * MCP_Abd_Matrix * MCP_Flex_Matrix * IP_Flex_Matrix)
@@ -57,13 +53,15 @@ def jacobian():
     
     # Substitute DH parameters for each joint
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
-
+    mc_length = 5
+    pp_length = 4
+    dp_length = 2
     theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
     CMC_Abd_Matrix = DH_Param.subs({theta: theta_cmc_horiz, alph: sp.pi/2, d: 0, r: 0})
-    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: MC_LENGTH})
+    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: mc_length})
     MCP_Abd_Matrix = DH_Param.subs({theta: theta_mcp_horiz, alph: sp.pi/2, d: 0, r: 0})
-    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: PP_LENGTH})
-    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: DP_LENGTH})
+    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: pp_length})
+    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: dp_length})
     
     # Compute the transformation matrices
     EP_Matrix = sp.simplify(CMC_Abd_Matrix * CMC_Flex_Matrix * MCP_Abd_Matrix * MCP_Flex_Matrix * IP_Flex_Matrix)
@@ -77,20 +75,27 @@ def jacobian():
 
 def solset():
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
-    theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    np.zeros(3,1) = jacobian * (theta_vals - EP_Change)
+    delta_theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
+    eq1 = np.zeros(3,1) == jacobian() * delta_theta_vals
+    solset = sp.solve(eq1, theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip)
+
 
     null = sp.null_space(jacobian)
     return null
 
 def f(theta_vals):
+    # define thumb joint lengths
+    mc_length = 5
+    pp_length = 4
+    dp_length = 2
+
     # We will only pass in a None type for theta_vals if we want to solve for theta values. 
     # Otherwise, we can use this function to reconstruct a position given KNOWN theta values
     if len(theta_vals) == 0: 
         # Define symbolic variables
         theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
         theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    positions_matrix, position_change = kinematics5_simulator_dh(theta_vals, MC_LENGTH, PP_LENGTH, DP_LENGTH)
+    positions_matrix, position_change = kinematics5_simulator_dh(theta_vals, mc_length, pp_length, dp_length)
 
     return position_change
 
