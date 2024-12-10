@@ -2,9 +2,13 @@ import numpy as np
 import sympy as sp
 import scipy
 
-def kinematics5_simulator_dh(theta_vals, mc_length=5, pp_length=4, dp_length=2):
+MC_LENGTH = 5
+PP_LENGTH = 4
+DP_LENGTH = 2
+
+def kinematics5_simulator_dh(theta_vals):
     # Define the total length
-    length = mc_length + pp_length + dp_length
+    length = MC_LENGTH + PP_LENGTH + DP_LENGTH
     og_pos = np.array([length, 0, 0])
 
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = theta_vals
@@ -22,10 +26,10 @@ def kinematics5_simulator_dh(theta_vals, mc_length=5, pp_length=4, dp_length=2):
     
     # Substitute DH parameters for each joint
     CMC_Abd_Matrix = DH_Param.subs({theta: theta_cmc_horiz, alph: sp.pi/2, d: 0, r: 0})
-    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: mc_length})
+    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: MC_LENGTH})
     MCP_Abd_Matrix = DH_Param.subs({theta: theta_mcp_horiz, alph: sp.pi/2, d: 0, r: 0})
-    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: pp_length})
-    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: dp_length})
+    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: PP_LENGTH})
+    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: DP_LENGTH})
     
     # Compute the transformation matrices
     EP_Matrix = sp.simplify(CMC_Abd_Matrix * CMC_Flex_Matrix * MCP_Abd_Matrix * MCP_Flex_Matrix * IP_Flex_Matrix)
@@ -53,15 +57,13 @@ def jacobian():
     
     # Substitute DH parameters for each joint
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
-    mc_length = 5
-    pp_length = 4
-    dp_length = 2
+
     theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
     CMC_Abd_Matrix = DH_Param.subs({theta: theta_cmc_horiz, alph: sp.pi/2, d: 0, r: 0})
-    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: mc_length})
+    CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: MC_LENGTH})
     MCP_Abd_Matrix = DH_Param.subs({theta: theta_mcp_horiz, alph: sp.pi/2, d: 0, r: 0})
-    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: pp_length})
-    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: dp_length})
+    MCP_Flex_Matrix = DH_Param.subs({theta: theta_mcp, alph: 0, d: 0, r: PP_LENGTH})
+    IP_Flex_Matrix = DH_Param.subs({theta: theta_ip, alph: 0, d: 0, r: DP_LENGTH})
     
     # Compute the transformation matrices
     EP_Matrix = sp.simplify(CMC_Abd_Matrix * CMC_Flex_Matrix * MCP_Abd_Matrix * MCP_Flex_Matrix * IP_Flex_Matrix)
@@ -88,7 +90,7 @@ def f(theta_vals):
         # Define symbolic variables
         theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
         theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    positions_matrix, position_change = kinematics5_simulator_dh(theta_vals, mc_length, pp_length, dp_length)
+    positions_matrix, position_change = kinematics5_simulator_dh(theta_vals, MC_LENGTH, PP_LENGTH, DP_LENGTH)
 
     return position_change
 
