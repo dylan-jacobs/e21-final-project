@@ -79,9 +79,9 @@ def solset():
     eq1 = np.zeros(3,1) == jacobian() * delta_theta_vals
     solset = sp.solve(eq1, theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip)
 
+    null = sp.null_space(jacobian())
 
-    null = sp.null_space(jacobian)
-    return null
+    return null, solset 
 
 def f(theta_vals):
     # define thumb joint lengths
