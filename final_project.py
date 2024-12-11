@@ -85,8 +85,8 @@ def jacobian(theta_vals):
 # equations depending on theta (R5) that
 # represent x, y, z in R3
 # ----------------------
-def numerical_jacobian(theta_vals):
-    delta = 0.01 # used to artificially create other theta vectors
+def numerical_jacobian(theta_vals, order=4):
+    delta = 0.001 # used to artificially create other theta vectors
 
     rows = 3
     cols = len(theta_vals)
@@ -96,12 +96,24 @@ def numerical_jacobian(theta_vals):
             delta_vals = np.zeros((1, cols))
             delta_vals[0, j] = delta
             
-            theta2 = theta_vals + delta_vals
-            theta1 = theta_vals - delta_vals
+            if (order == 2): # order 2 derivative approximation
+                theta2 = theta_vals + delta_vals
+                theta1 = theta_vals - delta_vals
 
-            _, f2 = kinematics5_simulator_dh(theta2.flatten().tolist())
-            _, f1 = kinematics5_simulator_dh(theta1.flatten().tolist())
-            jacobian[i, j] = (f2[i]-f1[i])/(2*delta)
+                _, f2 = kinematics5_simulator_dh(theta2.flatten().tolist())
+                _, f1 = kinematics5_simulator_dh(theta1.flatten().tolist())
+                jacobian[i, j] = (f2[i]-f1[i])/(2*delta)
+            else: # assume fourth order
+                theta4 = theta_vals + (2*delta_vals)
+                theta3 = theta_vals + delta_vals
+                theta2 = theta_vals - delta_vals
+                theta1 = theta_vals - (2*delta_vals)
+
+                _, f4 = kinematics5_simulator_dh(theta4.flatten().tolist())
+                _, f3 = kinematics5_simulator_dh(theta3.flatten().tolist())
+                _, f2 = kinematics5_simulator_dh(theta2.flatten().tolist())
+                _, f1 = kinematics5_simulator_dh(theta1.flatten().tolist())
+                jacobian[i, j] = ((8*f3[i]) - (8*f2[i]) + f1[i] - f4[i])/(12*delta)
     return jacobian
 
 def solset():
@@ -111,17 +123,6 @@ def solset():
     eq1 = sp.zeros(3,1) == jacobian(delta_theta_vals) * sp.Matrix(delta_theta_vals) + (-EP_Pos_change)
     solset = sp.solve(eq1, theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip)
     return solset 
-
-def f(theta_vals):
-    # We will only pass in a None type for theta_vals if we want to solve for theta values. 
-    # Otherwise, we can use this function to reconstruct a position given KNOWN theta values
-    if len(theta_vals) == 0: 
-        # Define symbolic variables
-        theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
-        theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    positions_matrix, position_change = kinematics5_simulator_dh(theta_vals)
-
-    return position_change
 
 def get_thumb_constraints():
     minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
@@ -165,9 +166,9 @@ def plot_thumb_3d(theta_vals):
     plt.show()
 
 theta_vals = [np.pi/6, np.pi/6, -np.pi/4, -np.pi/4, np.pi/6]  # Example joint angles in radians
-analytical_jacobian = jacobian(theta_vals)
+#analytical_jacobian = jacobian(theta_vals)
 num_jacobian = numerical_jacobian(theta_vals)
-print(analytical_jacobian)
+#print(analytical_jacobian)
 print(num_jacobian)
 # plot_thumb_3d(theta_vals)
 
