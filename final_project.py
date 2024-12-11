@@ -14,6 +14,7 @@ def kinematics5_simulator_dh(theta_vals):
     og_pos = np.array([length, 0, 0])
 
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = theta_vals
+
     
     # Define symbolic variables
     theta, alph, d, r = sp.symbols('theta alph d r')
@@ -61,7 +62,8 @@ def jacobian(theta_vals):
     ])
     
     # Substitute DH parameters for each joint
-    theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = theta_vals
+    theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
+    symbolic_theta = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
 
     CMC_Abd_Matrix = DH_Param.subs({theta: theta_cmc_horiz, alph: sp.pi/2, d: 0, r: 0})
     CMC_Flex_Matrix = DH_Param.subs({theta: theta_cmc, alph: -sp.pi/2, d: 0, r: MC_LENGTH})
@@ -72,29 +74,52 @@ def jacobian(theta_vals):
     # Compute the transformation matrices
     EP_Matrix = sp.simplify(CMC_Abd_Matrix * CMC_Flex_Matrix * MCP_Abd_Matrix * MCP_Flex_Matrix * IP_Flex_Matrix)
     position_vector = EP_Matrix[:3, 3]
-    jacobian = position_vector.jacobian([theta_vals])
+    jacobian = position_vector.jacobian([symbolic_theta])
+    subs = {theta_cmc_horiz: theta_vals[0], theta_cmc: theta_vals[1], theta_mcp_horiz: theta_vals[2], theta_mcp: theta_vals[3], theta_ip: theta_vals[4]}
+    jacobian_evaluated = np.array(jacobian.subs(subs))
+    return jacobian_evaluated
+
+# ----------------------
+# create numerical jacobian
+# q1 is a 3x1 matrix representing the 
+# equations depending on theta (R5) that
+# represent x, y, z in R3
+# ----------------------
+def numerical_jacobian(theta_vals):
+    delta = 0.01 # used to artificially create other theta vectors
+
+    rows = 3
+    cols = len(theta_vals)
+    jacobian = np.zeros((rows, cols))
+    for i in range(0, rows):
+        for j in range(0, cols):
+            delta_vals = np.zeros((1, cols))
+            delta_vals[0, j] = delta
+            
+            theta2 = theta_vals + delta_vals
+            theta1 = theta_vals - delta_vals
+
+            _, f2 = kinematics5_simulator_dh(theta2.flatten().tolist())
+            _, f1 = kinematics5_simulator_dh(theta1.flatten().tolist())
+            jacobian[i, j] = (f2[i]-f1[i])/(2*delta)
     return jacobian
 
 def solset():
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
     delta_theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    eq1 = sp.zeros(3,1) == jacobian(delta_theta_vals) * sp.Matrix(delta_theta_vals)
+    _, EP_Pos_change = kinematics5_simulator_dh(theta_vals = [0.1, 0.2, 0.1, 0.3, 0.4])
+    eq1 = sp.zeros(3,1) == jacobian(delta_theta_vals) * sp.Matrix(delta_theta_vals) + (-EP_Pos_change)
     solset = sp.solve(eq1, theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip)
     return solset 
 
 def f(theta_vals):
-    # define thumb joint lengths
-    MC_LENGTH = 5
-    PP_LENGTH = 4
-    DP_LENGTH = 2
-
     # We will only pass in a None type for theta_vals if we want to solve for theta values. 
     # Otherwise, we can use this function to reconstruct a position given KNOWN theta values
     if len(theta_vals) == 0: 
         # Define symbolic variables
         theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
         theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    positions_matrix, position_change = kinematics5_simulator_dh(theta_vals, MC_LENGTH, PP_LENGTH, DP_LENGTH)
+    positions_matrix, position_change = kinematics5_simulator_dh(theta_vals)
 
     return position_change
 
@@ -118,34 +143,6 @@ def rand_params():
     # take 2d array and flatten down to 1d array
     return q.flatten()
 
-def constraint_function(theta_vals):
-    minima, maxima = get_thumb_constraints()
-    g_sum = 0
-    for i in range(len(minima)):
-        g_sum += max(theta_vals[i] - minima[i], 0)
-        g_sum += max(maxima[i] - theta_vals[i], 0)
-
-    return g_sum
-
-def objective(theta_vals, final_position):
-    lambda_val = 100
-
-    return sum(f(theta_vals)) + (lambda_val*(constraint_function(theta_vals))**2)
-
-def compute_final_position(final_position):
-    q = rand_params()
-    res = scipy.optimize.minimize(fun=objective, x0=q, args=final_position, method='Powell', options=dict(maxfev=10000))
-    final_theta = res.x
-    error = objective(final_theta, None)
-    print(f'Final position: {f(final_theta)}')
-    print(f'Error: {error}')
-
-# compute_final_position([1, 1, 1])
-
-sol_set = solset()
-print(sol_set)
-
-
 def plot_thumb_3d(theta_vals):
 
     position_results, _ = kinematics5_simulator_dh(theta_vals)
@@ -168,7 +165,11 @@ def plot_thumb_3d(theta_vals):
     plt.show()
 
 theta_vals = [np.pi/6, np.pi/6, -np.pi/4, -np.pi/4, np.pi/6]  # Example joint angles in radians
-plot_thumb_3d(theta_vals)
+analytical_jacobian = jacobian(theta_vals)
+num_jacobian = numerical_jacobian(theta_vals)
+print(analytical_jacobian)
+print(num_jacobian)
+# plot_thumb_3d(theta_vals)
 
 ## STEPS TO PROJECT
 
