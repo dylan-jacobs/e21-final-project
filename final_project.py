@@ -7,6 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 MC_LENGTH = 5
 PP_LENGTH = 4
 DP_LENGTH = 2
+MAX_LENGTH = MC_LENGTH + PP_LENGTH + DP_LENGTH
 
 def kinematics5_simulator_dh(theta_vals):
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = theta_vals
@@ -168,6 +169,10 @@ num_jacobian = numerical_jacobian(theta_vals)
 # plot_thumb_3d(theta_vals)
 
 def iterative_ik(theta_vals,qf):
+    if (np.linalg.norm(qf) > MAX_LENGTH): 
+        print("Input distance outside of the thumb's range!")
+        return
+
     # Intialize guess for new theta
     tol = .1
     delta_q = np.inf
@@ -203,7 +208,7 @@ def iterative_ik(theta_vals,qf):
 
 initial_theta_vals = np.array([0.1, 0.2, 0.1, 0.3, 0.4])
 _, initial_end_point = kinematics5_simulator_dh(initial_theta_vals)
-qf = np.array(initial_end_point) + np.array([0.1, 0.1, 0.5])
+qf = np.array(initial_end_point) + np.array([-4, -2, -2])
 iterative_ik(initial_theta_vals, qf)
 
 ## STEPS TO PROJECT
