@@ -172,6 +172,24 @@ num_jacobian = numerical_jacobian(theta_vals)
 print(num_jacobian)
 # plot_thumb_3d(theta_vals)
 
+def iterative_ik(theta_vals,qf):
+    #Intialize guess for new theta
+    tol = .001
+    mag_er = np.inf
+    theta_g = theta_vals
+    
+    while mag_er > tol:
+
+        lam = 0.01
+        delta_q = qf - kinematics5_simulator_dh(theta_g)
+        #minimize l(delta_theta ) = ||qf-f(theta_g)+J*(theta_g)delta_theta||^2 + lambda||delta_theta||^2
+
+        #Implement damped jacobian pseudoinverse 
+        J = numerical_jacobian(theta_g)
+        JT = np.transpose(numerical_jacobian(theta_g))
+        delta_theta = JT*J+lam*np.idenity(like = JT*J) * JT * delta_q
+        theta_g += delta_theta
+
 ## STEPS TO PROJECT
 
 #1) WRITE CONSTRAINT EQUATIONS FOR EACH JOINT
