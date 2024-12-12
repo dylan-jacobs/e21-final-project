@@ -166,29 +166,48 @@ def plot_thumb_3d(theta_vals):
     plt.show()
 
 theta_vals = [np.pi/6, np.pi/6, -np.pi/4, -np.pi/4, np.pi/6]  # Example joint angles in radians
-#analytical_jacobian = jacobian(theta_vals)
+# analytical_jacobian = jacobian(theta_vals)
 num_jacobian = numerical_jacobian(theta_vals)
-#print(analytical_jacobian)
-print(num_jacobian)
+# print(analytical_jacobian)
+# print(num_jacobian)
 # plot_thumb_3d(theta_vals)
 
 def iterative_ik(theta_vals,qf):
-    #Intialize guess for new theta
+    # Intialize guess for new theta
     tol = .001
     mag_er = np.inf
     theta_g = theta_vals
-    
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
     while mag_er > tol:
 
-        lam = 0.01
-        delta_q = qf - kinematics5_simulator_dh(theta_g)
-        #minimize l(delta_theta ) = ||qf-f(theta_g)+J*(theta_g)delta_theta||^2 + lambda||delta_theta||^2
+        lam = 10
+        results, current_pos = kinematics5_simulator_dh(theta_g)
+        origin = np.zeros((3, 1))
+        position_results = np.concatenate([origin, results], axis=1)
 
-        #Implement damped jacobian pseudoinverse 
+        xs, ys, zs = zip(*position_results.T) # need to transpose to get matrix that can be iterated over its rows of length 3 (required for zip())
+
+        ax.clear()
+        ax.plot(xs, ys, zs, '-o', label='Thumb segments')
+        plt.pause(0.01)
+
+        delta_q = qf - current_pos # difference between desired final position and current pos
+
+        # Minimize l(delta_theta ) = ||qf-f(theta_g)+J*(theta_g)delta_theta||^2 + lambda||delta_theta||^2
+
+        # Implement damped jacobian pseudoinverse
         J = numerical_jacobian(theta_g)
-        JT = np.transpose(numerical_jacobian(theta_g))
-        delta_theta = JT*J+lam*np.idenity(like = JT*J) * JT * delta_q
+        JT = np.transpose(J)
+        delta_theta = np.linalg.inv((JT@J)+(lam*np.identity(n=5)))@(JT@delta_q)
         theta_g += delta_theta
+
+    plt.show()
+
+initial_theta_vals = np.array([0.1, 0.2, 0.1, 0.3, 0.4])
+qf = np.array([1, 2, 3])
+iterative_ik(initial_theta_vals, qf)
 
 ## STEPS TO PROJECT
 
