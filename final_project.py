@@ -174,15 +174,15 @@ num_jacobian = numerical_jacobian(theta_vals)
 
 def iterative_ik(theta_vals,qf):
     # Intialize guess for new theta
-    tol = .001
-    mag_er = np.inf
+    tol = .1
+    delta_q = np.inf
     theta_g = theta_vals
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    while mag_er > tol:
+    while np.linalg.norm(delta_q) > tol:
 
-        lam = 10
+        lam = 1
         results, current_pos = kinematics5_simulator_dh(theta_g)
         origin = np.zeros((3, 1))
         position_results = np.concatenate([origin, results], axis=1)
@@ -191,6 +191,7 @@ def iterative_ik(theta_vals,qf):
 
         ax.clear()
         ax.plot(xs, ys, zs, '-o', label='Thumb segments')
+        ax.plot(qf[0], qf[1], qf[2], '-x', label='Desired final position')
         plt.pause(0.01)
 
         delta_q = qf - current_pos # difference between desired final position and current pos
@@ -206,7 +207,7 @@ def iterative_ik(theta_vals,qf):
     plt.show()
 
 initial_theta_vals = np.array([0.1, 0.2, 0.1, 0.3, 0.4])
-qf = np.array([1, 2, 3])
+qf = np.array([1, 1, 1])
 iterative_ik(initial_theta_vals, qf)
 
 ## STEPS TO PROJECT
