@@ -9,10 +9,6 @@ PP_LENGTH = 4
 DP_LENGTH = 2
 
 def kinematics5_simulator_dh(theta_vals):
-    # Define the total length
-    length = MC_LENGTH + PP_LENGTH + DP_LENGTH
-    og_pos = np.array([length, 0, 0])
-
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = theta_vals
 
     
@@ -44,9 +40,8 @@ def kinematics5_simulator_dh(theta_vals):
     EP_Pos = np.array(EP_Matrix[:-1, 3].evalf(), dtype=float).flatten()
     
     results = np.column_stack((MCP_Pos, IP_Pos, EP_Pos))
-    EP_Change = EP_Pos - og_pos
     
-    return results, EP_Change
+    return results, EP_Pos
 
 # computes the jacobian of the position vector, which 
 # consists of x, y, z coordinate functions of theta_vec.
@@ -184,9 +179,9 @@ def iterative_ik(theta_vals,qf):
 
         lam = 10
         results, current_pos = kinematics5_simulator_dh(theta_g)
-        origin = np.zeros((3, 1))
-        position_results = np.concatenate([origin, results], axis=1)
 
+        origin = np.zeros((3, 1))
+        position_results = np.column_stack([origin, results])
         xs, ys, zs = zip(*position_results.T) # need to transpose to get matrix that can be iterated over its rows of length 3 (required for zip())
 
         ax.clear()
@@ -195,7 +190,6 @@ def iterative_ik(theta_vals,qf):
         plt.pause(0.01)
 
         delta_q = qf - current_pos # difference between desired final position and current pos
-        print(delta_q, np.linalg.norm(delta_q))
 
         # Minimize l(delta_theta ) = ||qf-f(theta_g)+J*(theta_g)delta_theta||^2 + lambda||delta_theta||^2
 
@@ -204,13 +198,12 @@ def iterative_ik(theta_vals,qf):
         JT = np.transpose(J)
         delta_theta = np.linalg.inv((JT@J)+(lam*np.identity(n=5)))@(JT@delta_q)
         theta_g += delta_theta
-        break
+        
     plt.show()
 
 initial_theta_vals = np.array([0.1, 0.2, 0.1, 0.3, 0.4])
 _, initial_end_point = kinematics5_simulator_dh(initial_theta_vals)
-qf = initial_end_point + np.array([0.1, 0.1, 0.5])
-print(qf)
+qf = np.array(initial_end_point) + np.array([0.1, 0.1, 0.5])
 iterative_ik(initial_theta_vals, qf)
 
 ## STEPS TO PROJECT
