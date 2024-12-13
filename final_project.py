@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg
 import sympy as sp
 import scipy
 import matplotlib.pyplot as plt
@@ -113,34 +114,29 @@ def numerical_jacobian(theta_vals, order=4):
     return jacobian
 
 def solset(theta_vals,theta_past):
-    theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
-    theta_syms = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    
-    jacobian = jacobian(theta_vals)
-    null = jacobian.nullspace()
+    jacobian = numerical_jacobian(theta_vals)
+    null = scipy.linalg.null_space(jacobian)
+
     #Using span of vectors in nullspace retroactively determine a set of solution thets that would minimize magnitude delta theta move
-    N = np.zeros(2,1)
-    for vector in null:
-        N(vector) = vector
 
     #MINI OPTIMIZATION PROBLEM
     #MINIMIZE THE FUNCTION OF 2 VARIABLES WHICH IS THE SPAN OF THE NULLSPACE MINUS THE PAST THETA VALS -> BEST
     #N1 and N2 are numeric not symbolic
-   # mag_delta_theta_move = (theta_vals-theta_past).norm()
+    # mag_delta_theta_move = (theta_vals-theta_past).norm()
   
-        # Objective function to minimize
+    # Objective function to minimize
     def objective(c):
         c1, c2 = c  # Coefficients
-        v = c1 * N(1) + c2 * N(2)
+        v = (c1 * null[:, 0]) + (c2 * null[:, 1])
         return np.linalg.norm(v - theta_past)**2
 
     # Initial guess for coefficients
     initial_guess = [0, 0]
 
     # Minimize the objective function
-    result = scipy.optimize.minimize(objective, initial_guess)
+    result = scipy.optimize.minimize(objective, initial_guess, method='L-BFGS-B', jac='2-point', options=dict(maxfun=10000))
     s_opt, t_opt = result.x
-    theta_opt = s_opt* N(1) + t_opt * N(2)
+    theta_opt = (s_opt * null[:, 0]) + t_opt * null[:, 1]
     #Find linear combination of N1 and N2 which minimizes 
     
 
@@ -228,7 +224,9 @@ def iterative_ik(theta_vals,qf):
         J = numerical_jacobian(theta_g)
         JT = np.transpose(J)
         delta_theta = np.linalg.inv((JT@J)+(lam*np.identity(n=5)))@(JT@delta_q)
-        theta_g += delta_theta
+        # theta_g += delta_theta
+        
+        theta_g = solset(theta_g + delta_theta, theta_g)
         
     plt.show()
 
