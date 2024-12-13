@@ -112,13 +112,39 @@ def numerical_jacobian(theta_vals, order=4):
                 jacobian[i, j] = ((8*f3[i]) - (8*f2[i]) + f1[i] - f4[i])/(12*delta)
     return jacobian
 
-def solset():
+def solset(theta_vals,theta_past):
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = sp.symbols('theta_cmc_horiz theta_cmc theta_mcp_horiz theta_mcp theta_ip')
-    delta_theta_vals = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
-    _, EP_Pos_change = kinematics5_simulator_dh(theta_vals = [0.1, 0.2, 0.1, 0.3, 0.4])
-    eq1 = sp.zeros(3,1) == jacobian(delta_theta_vals) * sp.Matrix(delta_theta_vals) + (-EP_Pos_change)
-    solset = sp.solve(eq1, theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip)
-    return solset 
+    theta_syms = [theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip]
+    
+    jacobian = jacobian(theta_vals)
+    null = jacobian.nullspace()
+    #Using span of vectors in nullspace retroactively determine a set of solution thets that would minimize magnitude delta theta move
+    N = np.zeros(2,1)
+    for vector in null:
+        N(vector) = vector
+
+    #MINI OPTIMIZATION PROBLEM
+    #MINIMIZE THE FUNCTION OF 2 VARIABLES WHICH IS THE SPAN OF THE NULLSPACE MINUS THE PAST THETA VALS -> BEST
+    #N1 and N2 are numeric not symbolic
+   # mag_delta_theta_move = (theta_vals-theta_past).norm()
+  
+        # Objective function to minimize
+    def objective(c):
+        c1, c2 = c  # Coefficients
+        v = c1 * N(1) + c2 * N(2)
+        return np.linalg.norm(v - theta_past)**2
+
+    # Initial guess for coefficients
+    initial_guess = [0, 0]
+
+    # Minimize the objective function
+    result = scipy.optimize.minimize(objective, initial_guess)
+    s_opt, t_opt = result.x
+    theta_opt = s_opt* N(1) + t_opt * N(2)
+    #Find linear combination of N1 and N2 which minimizes 
+    
+
+    return theta_opt
 
 def get_thumb_constraints():
     minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
