@@ -176,24 +176,22 @@ def solset(theta_vals,theta_past):
     return theta_opt
 
 def get_thumb_constraints():
-    minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
-    maxima = [62.9, 61.2, 10, 8.1, 12] # maxima extension, abduction
+    minima = np.deg2rad([10.2, 31.2, 0, 60, 88]) # minima adduction, flexion angles
+    maxima = np.deg2rad([62.9, 61.2, 10, 8.1, 12]) # maxima extension, abduction
     return minima, maxima
 
 def constraint_shift(theta):
-    minima = [10.2, 31.2, 0, 60, 88] 
-    maxima = [62.9, 61.2, 10, 8.1, 12]
+    minima, maxima = get_thumb_constraints()
     for i in range(len(theta)):
         new_theta=np.zeros(len(theta))
         if theta[i]>maxima[i]:
             new_theta[i]=maxima[i]
+            
         elif theta[i]<minima[i]:
             new_theta[i]=minima[i]
         else:
             new_theta[i]=theta[i]
     return new_theta
-            
-
 
 def rand_params():
 
