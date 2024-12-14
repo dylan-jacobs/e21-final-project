@@ -149,8 +149,8 @@ def solset(theta_vals,theta_past):
         constraint_penalty = 100  # Scaling factor for penalties
         penalties = 0 
         # is this just adding a numerical value to the objective function or is it minimizing with the constraint penalties as functions of theta?
-        minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
-        maxima = [62.9, 61.2, 10, 8.1, 12] # maxima extension, abduction
+
+        minima, maxima = get_thumb_constraints()
         
         #for i in range(len(updated_theta)):  # Iterate over theta components
         #    if updated_theta[i] > maxima[i]:
@@ -176,22 +176,19 @@ def solset(theta_vals,theta_past):
     return theta_opt
 
 def get_thumb_constraints():
-    minima = np.deg2rad([10.2, 31.2, 0, 60, 88]) # minima adduction, flexion angles
+    minima = np.deg2rad([-10.2, -31.2, 0, -60, -88]) # minima adduction, flexion angles
     maxima = np.deg2rad([62.9, 61.2, 10, 8.1, 12]) # maxima extension, abduction
     return minima, maxima
 
 def constraint_shift(theta):
     minima, maxima = get_thumb_constraints()
     for i in range(len(theta)):
-        new_theta=np.zeros(len(theta))
         if theta[i]>maxima[i]:
-            new_theta[i]=maxima[i]
+            theta[i]=maxima[i]
             
         elif theta[i]<minima[i]:
-            new_theta[i]=minima[i]
-        else:
-            new_theta[i]=theta[i]
-    return new_theta
+            theta[i]=minima[i]
+    return theta
 
 def rand_params():
 
