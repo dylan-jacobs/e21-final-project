@@ -131,6 +131,17 @@ def solset(theta_vals,theta_past):
         c1, c2 = c  # Coefficients
         delta_theta = (c1 * null[:, 0]) + (c2 * null[:, 1])
         updated_theta = theta_vals + delta_theta
+
+        # sanity check - ensure position isn't changing much at all
+        _, old_pos = kinematics5_simulator_dh(theta_vals)
+        _, new_pos = kinematics5_simulator_dh(updated_theta)
+        if not (np.allclose(old_pos, new_pos, atol=1e-2)):
+
+            print('Error: ', np.linalg.norm(old_pos - new_pos))
+
+            print('Old pos', old_pos)
+            print('New pos', new_pos)
+
         return np.dot(updated_theta - theta_past, updated_theta - theta_past)
 
     # Initial guess for coefficients
