@@ -142,7 +142,24 @@ def solset(theta_vals,theta_past):
             print('Old pos', old_pos)
             print('New pos', new_pos)
 
-        return np.dot(updated_theta - theta_past, updated_theta - theta_past)
+        # Core objective: minimize the magnitude of delta_theta
+        core_objective = np.dot(updated_theta - theta_past, updated_theta - theta_past)
+
+        # Add penalty terms for constraints
+        constraint_penalty = 100  # Scaling factor for penalties
+        penalties = 0 
+        #is this just adding a numerical value to the objective function or is it minimizing with the constraint penalties as functions of theta?
+        minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
+        maxima = [62.9, 61.2, 10, 8.1, 12] # maxima extension, abduction
+        
+        for i in range(len(updated_theta)):  # Iterate over theta components
+            if updated_theta[i] > maxima[i]:
+                penalties += constraint_penalty * (updated_theta[i] - maxima[i]) ** 2
+            elif updated_theta[i] < minima[i]:
+                penalties += constraint_penalty * (minima[i] - updated_theta[i]) ** 2
+
+        # Total objective: core objective + penalties
+        return core_objective + penalties
 
     # Initial guess for coefficients
     initial_guess = [0, 0]
@@ -214,6 +231,11 @@ def iterative_ik(theta_vals,qf):
     delta_q = np.inf
     theta_g = theta_vals
 
+    #for error plotting
+    error_list = []  # To store error at each step
+    step_list = []   # To store step indices
+    step = 0
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     while np.linalg.norm(delta_q) > tol:
@@ -242,6 +264,19 @@ def iterative_ik(theta_vals,qf):
         
         theta_g = solset(theta_g + delta_theta, theta_g)
         
+        error_list.append(np.linalg.norm(delta_q))  # Track the norm of delta_q
+        step_list.append(step)  # Track the current step
+        step += 1
+    plt.figure(1)
+    plt.show()
+
+    plt.figure(2)
+    plt.plot(step_list, error_list, '-o', label='Error vs Step')
+    plt.xlabel('Step')
+    plt.ylabel('Error (||delta_q||)')
+    plt.title('Error vs. Step for Iterative IK')
+    plt.grid(True)
+    plt.legend()
     plt.show()
 
 initial_theta_vals = np.array([0.1, 0.2, 0.1, 0.3, 0.4])
