@@ -152,14 +152,16 @@ def solset(theta_vals,theta_past):
         minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
         maxima = [62.9, 61.2, 10, 8.1, 12] # maxima extension, abduction
         
-        for i in range(len(updated_theta)):  # Iterate over theta components
-            if updated_theta[i] > maxima[i]:
-                penalties += constraint_penalty * (updated_theta[i] - maxima[i]) ** 2
-            elif updated_theta[i] < minima[i]:
-                penalties += constraint_penalty * (minima[i] - updated_theta[i]) ** 2
+        #for i in range(len(updated_theta)):  # Iterate over theta components
+        #    if updated_theta[i] > maxima[i]:
+        #        penalties += constraint_penalty * (updated_theta[i] - maxima[i]) ** 2
+        #    elif updated_theta[i] < minima[i]:
+        #        penalties += constraint_penalty * (minima[i] - updated_theta[i]) ** 2
 
         # Total objective: core objective + penalties
-        return core_objective + penalties
+        #return core_objective + penalties
+
+        return core_objective
 
     # Initial guess for coefficients
     initial_guess = [0, 0]
@@ -169,7 +171,7 @@ def solset(theta_vals,theta_past):
     s_opt, t_opt = result.x
     theta_opt = theta_vals + (s_opt * null[:, 0]) + (t_opt * null[:, 1])
     #Find linear combination of N1 and N2 which minimizes 
-    
+    theta_opt=constraint_shift(theta_opt)
 
     return theta_opt
 
@@ -177,6 +179,21 @@ def get_thumb_constraints():
     minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
     maxima = [62.9, 61.2, 10, 8.1, 12] # maxima extension, abduction
     return minima, maxima
+
+def constraint_shift(theta):
+    minima = [10.2, 31.2, 0, 60, 88] 
+    maxima = [62.9, 61.2, 10, 8.1, 12]
+    for i in range(len(theta)):
+        new_theta=np.zeros(len(theta))
+        if theta[i]>maxima[i]:
+            new_theta[i]=maxima[i]
+        elif theta[i]<minima[i]:
+            new_theta[i]=minima[i]
+        else:
+            new_theta[i]=theta[i]
+    return new_theta
+            
+
 
 def rand_params():
 
