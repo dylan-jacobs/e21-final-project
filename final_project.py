@@ -152,14 +152,14 @@ def solset(theta_vals,theta_past):
 
         minima, maxima = get_thumb_constraints()
         
-        #for i in range(len(updated_theta)):  # Iterate over theta components
-        #    if updated_theta[i] > maxima[i]:
-        #        penalties += constraint_penalty * (updated_theta[i] - maxima[i]) ** 2
-        #    elif updated_theta[i] < minima[i]:
-        #        penalties += constraint_penalty * (minima[i] - updated_theta[i]) ** 2
+        for i in range(len(updated_theta)):  # Iterate over theta components
+            if updated_theta[i] > maxima[i]:
+                penalties += constraint_penalty * (updated_theta[i] - maxima[i]) ** 2
+            elif updated_theta[i] < minima[i]:
+                penalties += constraint_penalty * (minima[i] - updated_theta[i]) ** 2
 
         # Total objective: core objective + penalties
-        #return core_objective + penalties
+        return core_objective + penalties
 
         return core_objective
 
@@ -171,7 +171,7 @@ def solset(theta_vals,theta_past):
     s_opt, t_opt = result.x
     theta_opt = theta_vals + (s_opt * null[:, 0]) + (t_opt * null[:, 1])
     #Find linear combination of N1 and N2 which minimizes 
-    theta_opt=constraint_shift(theta_opt)
+    # theta_opt=constraint_shift(theta_opt)
 
     return theta_opt
 
@@ -225,13 +225,6 @@ def plot_thumb_3d(theta_vals):
     ax.set_title('3D Thumb Representation')
     ax.legend()
     plt.show()
-
-theta_vals = [np.pi/6, np.pi/6, -np.pi/4, -np.pi/4, np.pi/6]  # Example joint angles in radians
-# analytical_jacobian = jacobian(theta_vals)
-num_jacobian = numerical_jacobian(theta_vals)
-# print(analytical_jacobian)
-# print(num_jacobian)
-# plot_thumb_3d(theta_vals)
 
 def iterative_ik(theta_vals,qf):
     if (np.linalg.norm(qf) > MAX_LENGTH): 
@@ -292,8 +285,8 @@ def iterative_ik(theta_vals,qf):
     plt.show()
 
 initial_theta_vals = np.array( [np.pi/6, np.pi/6, 0, -np.pi/4, -np.pi/6])
-_, initial_end_point = kinematics5_simulator_dh(initial_theta_vals)
-qf = np.array(initial_end_point) + np.array([-4, -2, -2])
+initial_theta_vals = rand_params()
+_, qf = kinematics5_simulator_dh(rand_params())
 iterative_ik(initial_theta_vals, qf)
 
 ## STEPS TO PROJECT
