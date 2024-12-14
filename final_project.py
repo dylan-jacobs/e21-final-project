@@ -296,7 +296,7 @@ def iterative_ik(theta_vals,qf):
     plt.legend()
     plt.show()
 
-initial_theta_vals = np.array([0.1, 0.2, 0.1, 0.3, 0.4])
+initial_theta_vals = np.array( [np.pi/6, np.pi/6, 0, -np.pi/4, -np.pi/6])
 _, initial_end_point = kinematics5_simulator_dh(initial_theta_vals)
 qf = np.array(initial_end_point) + np.array([-4, -2, -2])
 iterative_ik(initial_theta_vals, qf)
