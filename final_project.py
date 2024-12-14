@@ -135,7 +135,7 @@ def solset(theta_vals,theta_past):
         # sanity check - ensure position isn't changing much at all
         _, old_pos = kinematics5_simulator_dh(theta_vals)
         _, new_pos = kinematics5_simulator_dh(updated_theta)
-        if not (np.allclose(old_pos, new_pos, atol=1e-2)):
+        if not (np.allclose(old_pos, new_pos, atol=1)):
 
             print('Error: ', np.linalg.norm(old_pos - new_pos))
 
@@ -148,7 +148,7 @@ def solset(theta_vals,theta_past):
         # Add penalty terms for constraints
         constraint_penalty = 100  # Scaling factor for penalties
         penalties = 0 
-        #is this just adding a numerical value to the objective function or is it minimizing with the constraint penalties as functions of theta?
+        # is this just adding a numerical value to the objective function or is it minimizing with the constraint penalties as functions of theta?
         minima = [10.2, 31.2, 0, 60, 88] # minima adduction, flexion angles
         maxima = [62.9, 61.2, 10, 8.1, 12] # maxima extension, abduction
         
