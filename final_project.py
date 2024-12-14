@@ -114,8 +114,10 @@ def numerical_jacobian(theta_vals, order=4):
     return jacobian
 
 def solset(theta_vals,theta_past):
-    jacobian = numerical_jacobian(theta_vals)
-    null = scipy.linalg.null_space(jacobian)
+    J = numerical_jacobian(theta_vals)
+    null = scipy.linalg.null_space(J)
+    print(J)
+    print(null)
 
     #Using span of vectors in nullspace retroactively determine a set of solution thets that would minimize magnitude delta theta move
 
@@ -127,8 +129,9 @@ def solset(theta_vals,theta_past):
     # Objective function to minimize
     def objective(c):
         c1, c2 = c  # Coefficients
-        v = (c1 * null[:, 0]) + (c2 * null[:, 1])
-        return np.linalg.norm(v - theta_past)**2
+        delta_theta = (c1 * null[:, 0]) + (c2 * null[:, 1])
+        updated_theta = theta_vals + delta_theta
+        return np.dot(updated_theta - theta_past, updated_theta - theta_past)
 
     # Initial guess for coefficients
     initial_guess = [0, 0]
@@ -136,7 +139,7 @@ def solset(theta_vals,theta_past):
     # Minimize the objective function
     result = scipy.optimize.minimize(objective, initial_guess, method='L-BFGS-B', jac='2-point', options=dict(maxfun=10000))
     s_opt, t_opt = result.x
-    theta_opt = (s_opt * null[:, 0]) + t_opt * null[:, 1]
+    theta_opt = theta_vals + (s_opt * null[:, 0]) + (t_opt * null[:, 1])
     #Find linear combination of N1 and N2 which minimizes 
     
 
