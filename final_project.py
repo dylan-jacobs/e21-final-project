@@ -175,6 +175,9 @@ def optimize_theta(theta_vals,theta_past):
 
     return theta_opt
 
+# Return average biological minimum and 
+# maximum angles for each degree of 
+# freedom in thumb (radians)
 def get_thumb_constraints():
     minima = np.deg2rad([-10.2, -31.2, 0, -60, -88]) # minima adduction, flexion angles
     maxima = np.deg2rad([62.9, 61.2, 10, 8.1, 12]) # maxima extension, abduction
@@ -202,6 +205,8 @@ def rand_params():
     # convert to 1D array
     return q.flatten()
 
+
+# Graphing methods
 def plot_thumb_3d(ax, position_matrix, qf):
 
     origin = np.zeros((3, 1))
@@ -267,6 +272,9 @@ def create_animation(position_tensor, qf):
     # Show the animation
     plt.show()
 
+
+
+# ----- ITERATIVE METHOD -----
 # iterate until theta values are optimized to reach 
 # desired endpoint qf and minimize the delta_theta
 # of every step
