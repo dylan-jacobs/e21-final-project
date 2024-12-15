@@ -116,17 +116,16 @@ def numerical_jacobian(theta_vals, order=4):
                 jacobian[i, j] = ((8*f3[i]) - (8*f2[i]) + f1[i] - f4[i])/(12*delta)
     return jacobian
 
-def solset(theta_vals,theta_past):
+def optimize_theta(theta_vals,theta_past):
     J = numerical_jacobian(theta_vals)
     null = scipy.linalg.null_space(J)
     print(J)
     print(null)
 
-    #Using span of vectors in nullspace retroactively determine a set of solution thets that would minimize magnitude delta theta move
-
-    #MINI OPTIMIZATION PROBLEM
-    #MINIMIZE THE FUNCTION OF 2 VARIABLES WHICH IS THE SPAN OF THE NULLSPACE MINUS THE PAST THETA VALS -> BEST
-    #N1 and N2 are numeric not symbolic
+    # Using span of vectors in nullspace retroactively determine a set of solution thets that would minimize magnitude delta theta move
+    # MINI OPTIMIZATION PROBLEM
+    # MINIMIZE THE FUNCTION OF 2 VARIABLES WHICH IS THE SPAN OF THE NULLSPACE MINUS THE PAST THETA VALS -> BEST
+    # N1 and N2 are numeric not symbolic
     # mag_delta_theta_move = (theta_vals-theta_past).norm()
   
     # Objective function to minimize
@@ -164,17 +163,15 @@ def solset(theta_vals,theta_past):
         # Total objective: core objective + penalties
         return core_objective + penalties
 
-        return core_objective
-
     # Initial guess for coefficients
     initial_guess = [0, 0]
 
     # Minimize the objective function
     result = scipy.optimize.minimize(objective, initial_guess, method='L-BFGS-B', jac='2-point', options=dict(maxfun=10000))
     s_opt, t_opt = result.x
+
+    # linear combination of nullspace vectors that minimizes delta_theta
     theta_opt = theta_vals + (s_opt * null[:, 0]) + (t_opt * null[:, 1])
-    #Find linear combination of N1 and N2 which minimizes 
-    # theta_opt=constraint_shift(theta_opt)
 
     return theta_opt
 
@@ -188,56 +185,100 @@ def constraint_shift(theta):
     for i in range(len(theta)):
         if theta[i]>maxima[i]:
             theta[i]=maxima[i]
-            
         elif theta[i]<minima[i]:
             theta[i]=minima[i]
     return theta
 
 def rand_params():
-
-    # create lower and upper bounds for random gaussian function
-    # parameters
+    # upper/lower angle bounds for thumb's degrees of freedom
     lo, hi = get_thumb_constraints()
 
-    # sample uniformly in between lower and upper bounds
+    # randomly sample between upper/lower bounds
     q = np.random.uniform(lo, hi, 5)
 
-    # convert to float32 for quicker reconstruction
+    # convert to float32
     q = q.astype(np.float32)
 
-    # take 2d array and flatten down to 1d array
+    # convert to 1D array
     return q.flatten()
 
-def plot_thumb_3d(theta_vals):
+def plot_thumb_3d(ax, position_matrix, qf):
 
-    position_results, _ = kinematics5_simulator_dh(theta_vals)
     origin = np.zeros((3, 1))
-    position_results = np.concatenate([origin, position_results], axis=1)
-
+    position_results = np.column_stack([origin, position_matrix])
     xs, ys, zs = zip(*position_results.T) # need to transpose to get matrix that can be iterated over its rows of length 3 (required for zip())
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
+    ax.clear()
     ax.plot(xs, ys, zs, '-o', label='Thumb segments')
+    ax.plot(qf[0], qf[1], qf[2], '-x', label='Desired final position')
 
-    # Set labels and equal aspect ratio
     ax.set_xlabel('X-axis')
     ax.set_ylabel('Y-axis')
     ax.set_zlabel('Z-axis')
     ax.set_title('3D Thumb Representation')
     ax.legend()
+
+    plt.pause(0.01)
+    plt.autoscale(False)
+    plt.savefig('final_thumb_position.png')
+
+def plot_error(step_list, error_list):
+    plt.figure()
+    plt.plot(step_list, error_list, '-o', label='Error vs Step')
+    plt.xlabel('Step')
+    plt.ylabel('Error (||delta_q||)')
+    plt.title('Error vs. Step for Iterative IK')
+    plt.grid(True)
+    plt.legend()
+    plt.savefig('error_plot.png')
+
+def create_animation(position_tensor, qf):
+    frames = position_tensor.shape[2]
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Initialize the line object
+    origin = np.zeros((3, 1))
+    initial_position_matrix = np.column_stack([origin, position_tensor[:, :, 0]])
+    xs, ys, zs = zip(*initial_position_matrix.T)
+    line, = ax.plot(xs, ys, zs, '-o', label='Thumb segments')
+    ax.plot(qf[0], qf[1], qf[2], '-x', label='Desired final position')
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+    ax.set_title('3D Thumb Representation')
+    ax.legend()
+
+    # Clear plot
+    def init():
+        line.set_data([], [])
+        line.set_3d_properties([])
+        return line,
+
+    # Update data 
+    def update(frame):
+        position_matrix = np.column_stack([origin, position_tensor[:, :, frame]])
+        xs, ys, zs = zip(*position_matrix.T) # need to transpose to get matrix that can be iterated over its rows of length 3 (required for zip())
+        line.set_data(xs, ys)
+        line.set_3d_properties(zs)
+        return line,
+    ani = FuncAnimation(fig, update, frames=frames, init_func=init, blit=True, interval=250)
+    ani.save('thumb_movement.gif', writer='Pillow', fps=5)
+    # Show the animation
     plt.show()
 
+# iterate until theta values are optimized to reach 
+# desired endpoint qf and minimize the delta_theta
+# of every step
 def iterative_ik(theta_vals,qf):
 
-
+    # Ensure our given input is inside the thumb's reach
     if (np.linalg.norm(qf) > MAX_LENGTH): 
         print("Input distance outside of the thumb's range!")
         return
 
     # Intialize guess for new theta
-    tol = .1
+    tol = .1    # norm of error between qf and thumb's final position
     delta_q = np.inf
     theta_g = theta_vals
 
@@ -246,24 +287,19 @@ def iterative_ik(theta_vals,qf):
     step_list = []   # To store step indices
     step = 0
 
-    fig = plt.figure()
+    # For 3D thumb plotting
+    fig = plt.figure(1)
     ax = fig.add_subplot(111, projection='3d')
+    position_tensor = np.zeros((3, 3, 100)) # store positions over time
+
     while np.linalg.norm(delta_q) > tol:
 
         lam = 10
-        results, current_pos = kinematics5_simulator_dh(theta_g)
+        position_matrix, thumb_tip_position = kinematics5_simulator_dh(theta_g)
+        position_tensor[:, :, step] = position_matrix
+        plot_thumb_3d(ax, position_matrix, qf)
 
-        origin = np.zeros((3, 1))
-        position_results = np.column_stack([origin, results])
-        xs, ys, zs = zip(*position_results.T) # need to transpose to get matrix that can be iterated over its rows of length 3 (required for zip())
-
-        ax.clear()
-        ax.plot(xs, ys, zs, '-o', label='Thumb segments')
-        ax.plot(qf[0], qf[1], qf[2], '-x', label='Desired final position')
-        plt.pause(0.01)
-        plt.autoscale(False)
-
-        delta_q = qf - current_pos # difference between desired final position and current pos
+        delta_q = qf - thumb_tip_position # difference between desired final position and current pos
 
         # Minimize l(delta_theta ) = ||qf-f(theta_g)+J*(theta_g)delta_theta||^2 + lambda||delta_theta||^2
 
@@ -271,35 +307,21 @@ def iterative_ik(theta_vals,qf):
         J = numerical_jacobian(theta_g)
         JT = np.transpose(J)
         delta_theta = np.linalg.inv((JT@J)+(lam*np.identity(n=5)))@(JT@delta_q)
-        # theta_g += delta_theta
         
-        theta_g = solset(theta_g + delta_theta, theta_g)
+        theta_g = optimize_theta(theta_g + delta_theta, theta_g)
         
         error_list.append(np.linalg.norm(delta_q))  # Track the norm of delta_q
         step_list.append(step)  # Track the current step
         step += 1
-    plt.figure(1)
-    plt.show()
+    
+    # trim position tensor
+    position_tensor = position_tensor[:, :, :len(step_list)]
 
-    plt.figure(2)
-    plt.plot(step_list, error_list, '-o', label='Error vs Step')
-    plt.xlabel('Step')
-    plt.ylabel('Error (||delta_q||)')
-    plt.title('Error vs. Step for Iterative IK')
-    plt.grid(True)
-    plt.legend()
+    plot_error(step_list, error_list)
+    create_animation(position_tensor, qf)
     plt.show()
 
 initial_theta_vals = np.array( [np.pi/6, np.pi/6, 0, -np.pi/4, -np.pi/6])
 initial_theta_vals = rand_params()
 _, qf = kinematics5_simulator_dh(rand_params())
 iterative_ik(initial_theta_vals, qf)
-
-## STEPS TO PROJECT
-
-#1) WRITE CONSTRAINT EQUATIONS FOR EACH JOINT
-#2) APPLY CONSTRAINT EQNS TO POS ARRAYS
-        #-) POS ARRAYS USED WILL BE DIFFERENCE BETWEEN SYMBOLIC ABOVE AND DESIRED LOCATION
-        #-) 9 EQNS, 5 VARS CAN ELIMINATE SOME
-#3) USE NUMERICAL METHODS OF CHOICE TO MINIMIZE ALL VARIABLES IN EQNS WITH CONSTRAINTS
-#4) CHECK WITH FUSION MODEL
