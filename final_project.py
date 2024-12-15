@@ -3,17 +3,20 @@ import scipy.linalg
 import sympy as sp
 import scipy
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.animation import FuncAnimation
 
 MC_LENGTH = 5
 PP_LENGTH = 4
 DP_LENGTH = 2
 MAX_LENGTH = MC_LENGTH + PP_LENGTH + DP_LENGTH
 
+# computes the final position of the thumb-tip
+# using forward kinematics and given theta values
+# for the thumb's 5 degrees of freedom via Denavhit-
+# Hartenburg matrix multiplication
 def kinematics5_simulator_dh(theta_vals):
     theta_cmc_horiz, theta_cmc, theta_mcp_horiz, theta_mcp, theta_ip = theta_vals
 
-    
     # Define symbolic variables
     theta, alph, d, r = sp.symbols('theta alph d r')
     
@@ -45,10 +48,10 @@ def kinematics5_simulator_dh(theta_vals):
     
     return results, EP_Pos
 
-# computes the jacobian of the position vector, which 
+# computes the analytical jacobian of the position vector, which 
 # consists of x, y, z coordinate functions of theta_vec.
 # theta_vec = length-5 symbolic variable vector
-def jacobian(theta_vals):
+def analytical_jacobian(theta_vals):
     theta, alph, d, r = sp.symbols('theta alph d r')
     # Define the DH parameter matrix
     DH_Param = sp.Matrix([
@@ -227,6 +230,8 @@ def plot_thumb_3d(theta_vals):
     plt.show()
 
 def iterative_ik(theta_vals,qf):
+
+
     if (np.linalg.norm(qf) > MAX_LENGTH): 
         print("Input distance outside of the thumb's range!")
         return
@@ -256,6 +261,7 @@ def iterative_ik(theta_vals,qf):
         ax.plot(xs, ys, zs, '-o', label='Thumb segments')
         ax.plot(qf[0], qf[1], qf[2], '-x', label='Desired final position')
         plt.pause(0.01)
+        plt.autoscale(False)
 
         delta_q = qf - current_pos # difference between desired final position and current pos
 
