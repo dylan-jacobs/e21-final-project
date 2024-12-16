@@ -117,15 +117,26 @@ def numerical_jacobian(theta_vals, order=4):
 # find the best theta that achieves the same 
 # final position
 def optimize_theta(theta_vals,theta_past):
-    J = numerical_jacobian(theta_vals)
-    null = scipy.linalg.null_space(J)
-
     # Using span of vectors in nullspace retroactively determine a set of solution thets that would minimize magnitude delta theta move
     # MINI OPTIMIZATION PROBLEM
     # MINIMIZE THE FUNCTION OF 2 VARIABLES WHICH IS THE SPAN OF THE NULLSPACE MINUS THE PAST THETA VALS -> BEST
     # N1 and N2 are numeric not symbolic
     # mag_delta_theta_move = (theta_vals-theta_past).norm()
+
+    def penalize_illegal_angles(updated_theta):
+        penalty = 0 
+        minima, maxima = get_thumb_constraints()
+        
+        for i in range(len(updated_theta)):  # Iterate over theta components
+            if updated_theta[i] > maxima[i]:
+                penalty += (updated_theta[i] - maxima[i]) ** 2
+            elif updated_theta[i] < minima[i]:
+                penalty += (minima[i] - updated_theta[i]) ** 2
+        return penalty
   
+    J = numerical_jacobian(theta_vals)
+    null = scipy.linalg.null_space(J)
+
     # Objective function to minimize
     def objective(c):
         c1, c2 = c  # Coefficients
@@ -137,26 +148,17 @@ def optimize_theta(theta_vals,theta_past):
 
         # Add penalty terms for constraints
         constraint_penalty = 100  # Scaling factor for penalties
-        penalties = 0 
-        # is this just adding a numerical value to the objective function or is it minimizing with the constraint penalties as functions of theta?
 
-        minima, maxima = get_thumb_constraints()
-        
-        for i in range(len(updated_theta)):  # Iterate over theta components
-            if updated_theta[i] > maxima[i]:
-                penalties += constraint_penalty * (updated_theta[i] - maxima[i]) ** 2
-            elif updated_theta[i] < minima[i]:
-                penalties += constraint_penalty * (minima[i] - updated_theta[i]) ** 2
 
         # Total objective: core objective + penalties
-        return core_objective + penalties
+        return core_objective + (constraint_penalty*penalize_illegal_angles(updated_theta))
 
     # Initial guess for coefficients
     initial_guess = [0, 0]
 
     # Minimize the objective function
-    result = scipy.optimize.minimize(objective, initial_guess, method='L-BFGS-B', jac='2-point', options=dict(maxfun=10000))
-    s_opt, t_opt = result.x
+    optimal_nullspace_parameters = scipy.optimize.minimize(objective, initial_guess, method='L-BFGS-B', jac='2-point', options=dict(maxfun=10000))
+    s_opt, t_opt = optimal_nullspace_parameters.x
 
     # linear combination of nullspace vectors that minimizes delta_theta
     theta_opt = theta_vals + (s_opt * null[:, 0]) + (t_opt * null[:, 1])
