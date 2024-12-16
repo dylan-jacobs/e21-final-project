@@ -183,15 +183,6 @@ def get_thumb_constraints():
     maxima = np.deg2rad([62.9, 61.2, 10, 8.1, 12]) # maxima extension, abduction
     return minima, maxima
 
-def constraint_shift(theta):
-    minima, maxima = get_thumb_constraints()
-    for i in range(len(theta)):
-        if theta[i]>maxima[i]:
-            theta[i]=maxima[i]
-        elif theta[i]<minima[i]:
-            theta[i]=minima[i]
-    return theta
-
 def rand_params():
     # upper/lower angle bounds for thumb's degrees of freedom
     lo, hi = get_thumb_constraints()
