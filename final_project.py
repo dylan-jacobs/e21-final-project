@@ -79,12 +79,10 @@ def analytical_jacobian(theta_vals):
     jacobian_evaluated = np.array(jacobian.subs(subs))
     return jacobian_evaluated
 
-# ----------------------
 # create numerical jacobian
 # q1 is a 3x1 matrix representing the 
 # equations depending on theta (R5) that
 # represent x, y, z in R3
-# ----------------------
 def numerical_jacobian(theta_vals, order=4):
     delta = 0.001 # used to artificially create other theta vectors
 
@@ -116,11 +114,11 @@ def numerical_jacobian(theta_vals, order=4):
                 jacobian[i, j] = ((8*f3[i]) - (8*f2[i]) + f1[i] - f4[i])/(12*delta)
     return jacobian
 
+# find the best theta that achieves the same 
+# final position
 def optimize_theta(theta_vals,theta_past):
     J = numerical_jacobian(theta_vals)
     null = scipy.linalg.null_space(J)
-    print(J)
-    print(null)
 
     # Using span of vectors in nullspace retroactively determine a set of solution thets that would minimize magnitude delta theta move
     # MINI OPTIMIZATION PROBLEM
@@ -133,16 +131,6 @@ def optimize_theta(theta_vals,theta_past):
         c1, c2 = c  # Coefficients
         delta_theta = (c1 * null[:, 0]) + (c2 * null[:, 1])
         updated_theta = theta_vals + delta_theta
-
-        # sanity check - ensure position isn't changing much at all
-        _, old_pos = kinematics5_simulator_dh(theta_vals)
-        _, new_pos = kinematics5_simulator_dh(updated_theta)
-        if not (np.allclose(old_pos, new_pos, atol=1)):
-
-            print('Error: ', np.linalg.norm(old_pos - new_pos))
-
-            print('Old pos', old_pos)
-            print('New pos', new_pos)
 
         # Core objective: minimize the magnitude of delta_theta
         core_objective = np.dot(updated_theta - theta_past, updated_theta - theta_past)
@@ -183,6 +171,7 @@ def get_thumb_constraints():
     maxima = np.deg2rad([62.9, 61.2, 10, 8.1, 12]) # maxima extension, abduction
     return minima, maxima
 
+# Get random angle parameters 
 def rand_params():
     # upper/lower angle bounds for thumb's degrees of freedom
     lo, hi = get_thumb_constraints()
